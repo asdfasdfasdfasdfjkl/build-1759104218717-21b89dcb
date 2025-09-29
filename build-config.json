@@ -1,0 +1,19 @@
+{
+  "website_address": "https://youtube.com",
+  "app_name": "YouTube ",
+  "version_code": "1",
+  "version_name": "1.0.0",
+  "name_space": "com.youtube",
+  "has_custom_icon": true,
+  "build_type": "release",
+  "platform": "android",
+  "permissions": {
+    "camera": "enabled",
+    "location": "enabled",
+    "microphone": "enabled",
+    "notifications": "disabled",
+    "contacts": "enabled"
+  },
+  "created_at": "2025-09-29T00:03:43.168Z",
+  "app_icon": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACABAMAAAAxEHz4AAAAG1BMVEVCHuL////39/g4EuGvoPB2XelaOuWUgO/Px/aCU2+8AAAACXBIWXMAAAsTAAALEwEAmpwYAAADK0lEQVR42u2ZTWgTQRTH3zobU6vUrYJgQWLtJQera0PiwULrB+jRoyBSS8GLIEV70YMgeqxQBEWF0vamB0WPHsQKvfixddteKlikiFg82EE0YskwHpI2b5LNOm8GFHRzmkl2/vnN+8rkjbML7F7rIBFIBP49gWW9NcscTdzqUKYLLVoCmZYRb23irGWjPPN2ThN77vxdr14g9a4z1BRgnYfGVxVYa2VQPBIs6RpOLolTMzUEsu9RSLA9SzV7qkBxiei+KxOqG8/5tPXsU40N5DOagHR+KARfF6gROJ1RBLbQY7gdC8gdIXW9mOWYwKMTOJjAMRHwkEBxlC7wsg9lY0kJ9LhlyFaTOJ396gesELN+BT1XVw8q7599HCPw3a91lxtRcGIMl9KpiZ5tUeUxGQCWBE5CkBBEE7iNCZwu/NyLBgQRAl5FQR58GPpq8tIIYDjfGayO80Y2eN3r23lB3utQS5kOgbiFvPDz+UBl5OsTlI5iuSlGjgPxCit8vuqTbRDM70OzYc+nRiKE3wbRmtmd1EgECGbakCumqqVckwBE6TA6CLpUGwCAGNsfuW+pfVYW8/3m2Vg25Ho/NK0HFUNiVxgQgJiebeM2BCB2HzesiaslJD9uZQPmPgErgq5LXMsLjYxY2DgCNgR+d2j+uwAALDsW+a26BKwfGVBuJhMw9ymapdFuNAly2AHpAwGVwN+EHOBkF0KiDXLZN2h2gYfUOMjfR5NtlwU1DtgG9MPCuoVBJHJkwFGTSKz+LT6xYBSJawRDkyHYEAw9CM2ysUKwVXUAmSDdI0yzsUxwMjCuB2UCHoIdAQdLAouTKrc9qZYPml4uYiklDtoXI56jEFz/Uzb4+15ICP5DAtDKhda4JszvBcTN03FtoPEGAqgAiiCuBVc3dOs4YgXwq3eiasTmAXovrTCB+4mcLiCVfqKJgNJP/OBT17M9uJ8IX+gE75VIbOmgru9aVEM5R91DriYSb1Bb49trOtvuIKdIsPR0k7oF53aOtIGLdfcLqY9can//3p47TXXZuHJN/4rkWNQVCch0xuqSBkDyVi2BZdwId5I710QgEQAAgF/x1/DQXTMBVgAAAABJRU5ErkJggg=="
+}
