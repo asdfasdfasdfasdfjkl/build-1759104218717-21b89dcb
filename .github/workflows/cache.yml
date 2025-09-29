@@ -1,0 +1,264 @@
+name: Setup Build Cache
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_refresh:
+        description: 'Force refresh all caches'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+env:
+  NODE_VERSION: '18'
+  JAVA_VERSION: '17'
+  ANDROID_HOME: /opt/android-sdk-linux
+  ANDROID_SDK_ROOT: /opt/android-sdk-linux
+
+jobs:
+  setup-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Node.js Setup and NPM Cache
+      - name: "⚙️ Setup Node.js ${{ env.NODE_VERSION }}"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: "📦 Restore NPM Dependencies Cache"
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-npm-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-npm-
+
+      - name: "📦 Install NPM Dependencies"
+        if: steps.npm-cache.outputs.cache-hit != 'true' || github.event.inputs.force_refresh == 'true'
+        run: |
+          echo "Installing npm dependencies..."
+          npm ci --legacy-peer-deps --no-audit --no-fund
+
+      # Java JDK Setup
+      - name: "☕ Setup Java JDK ${{ env.JAVA_VERSION }}"
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      # Android SDK Setup
+      - name: "🤖 Setup Android SDK"
+        uses: android-actions/setup-android@v3
+
+      - name: "📦 Cache Android SDK"
+        uses: actions/cache@v4
+        id: android-sdk-cache
+        with:
+          path: |
+            ${{ env.ANDROID_HOME }}
+            ~/.android
+          key: ${{ runner.os }}-android-sdk-${{ env.JAVA_VERSION }}-${{ hashFiles('android/build.gradle', 'android/app/build.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-android-sdk-${{ env.JAVA_VERSION }}-
+            ${{ runner.os }}-android-sdk-
+
+      # Gradle Wrapper Cache
+      - name: "📦 Cache Gradle Wrapper"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-wrapper-
+
+      # Gradle Dependencies Cache
+      - name: "📦 Cache Gradle Dependencies"
+        uses: actions/cache@v4
+        id: gradle-cache
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/daemon
+            android/.gradle
+          key: ${{ runner.os }}-gradle-deps-${{ env.JAVA_VERSION }}-${{ hashFiles('android/build.gradle', 'android/app/build.gradle', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-deps-${{ env.JAVA_VERSION }}-
+            ${{ runner.os }}-gradle-deps-
+
+      - name: "🔧 Make Gradlew Executable"
+        run: chmod +x android/gradlew
+
+      # Download Gradle Dependencies
+      - name: "⬇️ Download Gradle Dependencies"
+        if: steps.gradle-cache.outputs.cache-hit != 'true' || github.event.inputs.force_refresh == 'true'
+        run: |
+          cd android
+          echo "Downloading Gradle dependencies..."
+          ./gradlew dependencies --no-daemon --stacktrace --parallel
+
+      # Metro Cache
+      - name: "📦 Cache Metro Bundler"
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/.cache/metro
+            ${{ runner.temp }}/metro-cache
+          key: ${{ runner.os }}-metro-${{ hashFiles('metro.config.js', 'package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-metro-
+
+      # React Native Cache
+      - name: "📦 Cache React Native Components"
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/@react-native-community
+            node_modules/react-native
+          key: ${{ runner.os }}-rn-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-rn-
+
+      # Native Dependencies Cache
+      - name: "📦 Cache Native Dependencies"
+        uses: actions/cache@v4
+        id: native-deps-cache
+        with:
+          path: |
+            node_modules/sharp
+            node_modules/@img
+          key: ${{ runner.os }}-native-deps-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-native-deps-
+
+      - name: "🖼️ Install Sharp for Icon Processing"
+        if: steps.native-deps-cache.outputs.cache-hit != 'true' || github.event.inputs.force_refresh == 'true'
+        run: |
+          echo "Installing Sharp for icon processing..."
+          npm install sharp --no-save
+
+      # Android AVD Cache
+      - name: "📦 Cache Android AVD"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/avd
+            ~/.android/adb*
+          key: ${{ runner.os }}-android-avd-33
+          restore-keys: |
+            ${{ runner.os }}-android-avd-
+
+      # Kotlin Compiler Cache
+      - name: "📦 Cache Kotlin Compiler"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.konan
+            ~/.kotlin
+          key: ${{ runner.os }}-kotlin-${{ hashFiles('android/build.gradle', 'android/app/build.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-kotlin-
+
+      # Verification and Summary
+      - name: "✅ Verify Cache Setup and Generate Summary"
+        run: |
+          echo "## Build Cache Setup Complete 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Cache Status:" >> $GITHUB_STEP_SUMMARY
+          
+          # Check npm cache
+          if [ "${{ steps.npm-cache.outputs.cache-hit }}" == "true" ]; then
+            echo "- ✅ NPM dependencies: CACHE HIT" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🔄 NPM dependencies: CACHE MISS (newly cached)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check gradle cache
+          if [ "${{ steps.gradle-cache.outputs.cache-hit }}" == "true" ]; then
+            echo "- ✅ Gradle dependencies: CACHE HIT" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🔄 Gradle dependencies: CACHE MISS (newly cached)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check Android SDK cache
+          if [ "${{ steps.android-sdk-cache.outputs.cache-hit }}" == "true" ]; then
+            echo "- ✅ Android SDK: CACHE HIT" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🔄 Android SDK: CACHE MISS (newly cached)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check native dependencies
+          if [ "${{ steps.native-deps-cache.outputs.cache-hit }}" == "true" ]; then
+            echo "- ✅ Native dependencies: CACHE HIT" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🔄 Native dependencies: CACHE MISS (newly cached)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installed Components:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Node.js ${{ env.NODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Java JDK ${{ env.JAVA_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Android SDK with Platform Tools" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Gradle wrapper and dependencies" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Metro bundler cache prepared" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Sharp image processing library" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Cache Sizes:" >> $GITHUB_STEP_SUMMARY
+          
+          # Verify paths exist and show sizes
+          if [ -d "node_modules" ]; then
+            NODE_SIZE=$(du -sh node_modules 2>/dev/null | cut -f1 || echo "N/A")
+            echo "- Node modules: $NODE_SIZE" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -d "$HOME/.gradle" ]; then
+            GRADLE_SIZE=$(du -sh ~/.gradle 2>/dev/null | cut -f1 || echo "N/A")
+            echo "- Gradle cache: $GRADLE_SIZE" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -d "$ANDROID_HOME" ]; then
+            ANDROID_SIZE=$(du -sh $ANDROID_HOME 2>/dev/null | cut -f1 || echo "N/A")
+            echo "- Android SDK: $ANDROID_SIZE" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**🚀 Cache setup complete! Build workflows will now run much faster.**" >> $GITHUB_STEP_SUMMARY
+
+      # Store Cache Metadata
+      - name: "📊 Store Cache Metadata"
+        run: |
+          mkdir -p .github-cache
+          cat > .github-cache/cache-info.json << EOF
+          {
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "workflow_run": "${{ github.run_id }}",
+            "node_version": "${{ env.NODE_VERSION }}",
+            "java_version": "${{ env.JAVA_VERSION }}",
+            "force_refresh": "${{ github.event.inputs.force_refresh }}",
+            "cache_results": {
+              "npm_hit": "${{ steps.npm-cache.outputs.cache-hit }}",
+              "gradle_hit": "${{ steps.gradle-cache.outputs.cache-hit }}",
+              "android_sdk_hit": "${{ steps.android-sdk-cache.outputs.cache-hit }}",
+              "native_deps_hit": "${{ steps.native-deps-cache.outputs.cache-hit }}"
+            }
+          }
+          EOF
+          
+          echo "✅ Cache setup completed successfully"
+          echo "📊 Cache metadata saved for future reference"
